@@ -90,7 +90,7 @@ try {
 
 if(!userId){
     return new NextResponse(
-        JSON.stringify({message: "ID or new username not found"}),
+        JSON.stringify({message: "ID not found"}),
         {status: 400}
     )
 }
@@ -120,6 +120,8 @@ return new NextResponse(
 )
 
 } catch (error:any) {
-    
+ return new NextResponse("Error in deleting user" + error.message,{
+    status:500,
+ }) 
 }
 }
