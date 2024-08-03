@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connect from "@/lib/db";
 import Blog from "@/lib/modals/category";
+import Category from "@/lib/modals/category";
 import {Types} from "mongoose";
 import User from "@/lib/modals/category";
 
@@ -51,9 +52,23 @@ export const GET = async (request: Request, context: {params: any})=>{
             );
         }
 
+        const filter: any = {
+            user: new Types.ObjectId(userId),
+            category: new Types.ObjectId(categoryId)
+        };
+
+        //TODO
+
+        const blogs = await Blog.find(filter);
+
+        return new NextResponse(JSON.stringify({blogs}),{
+            status:200,
+        })
+
     } catch (error:any) {
         return new NextResponse("Error in fetching a blog" + error.message, {
             status: 500
         })
     }
 }
+
