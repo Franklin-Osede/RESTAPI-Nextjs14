@@ -5,12 +5,16 @@ import { Types } from "mongoose"; // Import Types for ObjectId validation
 import User from "@/lib/modals/user"; // Import the User model
 import Category from "@/lib/modals/category"; // Import the Category model
 
+
+
 // GET handler to fetch blogs based on userId and categoryId
 export const GET = async (request: Request) => {
     try {
         const { searchParams } = new URL(request.url); // Extract search parameters from the request URL
         const userId = searchParams.get("userId"); // Get userId from search parameters
         const categoryId = searchParams.get("categoryId"); // Get categoryId from search parameters
+        const searchKeywords = searchParams.get("keywords") as string;
+        const page = searchParams.get("page") as string
 
         // Validate userId
         if (!userId || !Types.ObjectId.isValid(userId)) {
@@ -48,11 +52,26 @@ export const GET = async (request: Request) => {
             );
         }
 
-        // Filter blogs by userId and categoryId
-        const filter = {
-            user: new Types.ObjectId(userId), 
+           // Filter blogs by userId and categoryId
+           const filter: {
+            user: Types.ObjectId;
+            category: Types.ObjectId;
+            $or?: Array<{ title: { $regex: string; $options: string } } | { description: { $regex: string; $options: string } }>;
+        } = {
+            user: new Types.ObjectId(userId),
             category: new Types.ObjectId(categoryId),
         };
+
+        if (searchKeywords) {
+            filter.$or = [
+                {
+                    title: { $regex: searchKeywords, $options: "i" }
+                },
+                {
+                    description: { $regex: searchKeywords, $options: "i" }
+                }
+            ];
+        }
 
         // Fetch blogs based on the filter
         const blogs = await Blog.find(filter);
