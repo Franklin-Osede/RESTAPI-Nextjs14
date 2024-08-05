@@ -5,8 +5,6 @@ import { Types } from "mongoose"; // Import Types for ObjectId validation
 import User from "@/lib/modals/user"; // Import the User model
 import Category from "@/lib/modals/category"; // Import the Category model
 
-
-
 // GET handler to fetch blogs based on userId and categoryId
 export const GET = async (request: Request) => {
     try {
@@ -14,7 +12,12 @@ export const GET = async (request: Request) => {
         const userId = searchParams.get("userId"); // Get userId from search parameters
         const categoryId = searchParams.get("categoryId"); // Get categoryId from search parameters
         const searchKeywords = searchParams.get("keywords") as string;
-        const page = searchParams.get("page") as string
+        const startDate = searchParams.get("startDate");
+        const endDate = searchParams.get("endDate");
+        const page = parseInt(searchParams.get("page") ?? "1", 10); // Default to 1 if page is not provided
+        const limit = parseInt(searchParams.get("limit") ?? "10", 10);
+
+
 
         // Validate userId
         if (!userId || !Types.ObjectId.isValid(userId)) {
@@ -52,15 +55,11 @@ export const GET = async (request: Request) => {
             );
         }
 
-           // Filter blogs by userId and categoryId
-           const filter: {
-            user: Types.ObjectId;
-            category: Types.ObjectId;
-            $or?: Array<{ title: { $regex: string; $options: string } } | { description: { $regex: string; $options: string } }>;
-        } = {
+        // Filter blogs by userId and categoryId
+        const filter = {
             user: new Types.ObjectId(userId),
             category: new Types.ObjectId(categoryId),
-        };
+        } as any; // Type assertion to allow additional properties
 
         if (searchKeywords) {
             filter.$or = [
@@ -73,8 +72,28 @@ export const GET = async (request: Request) => {
             ];
         }
 
+        if (startDate && endDate) {
+            filter.createdAt = {
+                $gte: new Date(startDate),
+                $lte: new Date(endDate)
+            };
+        } else if (startDate) {
+            filter.createdAt = {
+                $gte: new Date(startDate),
+            };
+        } else if (endDate) {
+            filter.createdAt = {
+                $lte: new Date(endDate),
+            };
+        }
+
+        const skip = (page - 1) * limit;
+
         // Fetch blogs based on the filter
-        const blogs = await Blog.find(filter);
+        const blogs = await Blog.find(filter)
+        .sort({createdAt: "asc"})
+        .skip(skip)
+        .limit(limit)
 
         return new NextResponse(
             JSON.stringify({ blogs }), // Return the fetched blogs
